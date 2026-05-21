@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Chess</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <h1 class="title">Simple Chess</h1>
+
+    <section class="layout">
+      <div class="board-shell">
+        <div id="rank-labels" class="rank-labels" aria-hidden="true"></div>
+        <div id="board" class="board" aria-label="Chessboard"></div>
+        <div id="file-labels" class="file-labels" aria-hidden="true"></div>
+      </div>
+
+      <aside class="panel">
+        <h2>Game Status</h2>
+        <p id="status">Turn: White</p>
+        <p id="detail" class="detail">Select a piece to see legal moves.</p>
+        <button id="reset-btn" type="button">Reset Game</button>
+      </aside>
+    </section>
+  </main>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <!-- chess.js handles legal move generation, rules, and endgame states -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.4.0/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="script.js"></script>
+</body>
+</html>
