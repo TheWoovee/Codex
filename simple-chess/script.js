@@ -1,31 +1,41 @@
-/* Simple Chess
-   Uses chess.js for complete rule validation:
-   - Legal moves for all pieces
-   - Turn enforcement
-   - Check / checkmate / stalemate / draws
+/*
+  Simple Chess app
+  - Board state is stored in a 2D array.
+  - UI is rendered from that state.
+  - Basic click-to-move interaction (no chess rule validation yet).
 */
 
 $(function () {
   const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
   const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+  // Track selected square and current player turn.
+  let selected = null;
+  let currentTurn = 'w';
+
+  // Create initial board with standard piece placement.
+  const createInitialBoard = () => ([
+    ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+    ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+    ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+  ]);
+
+  let boardState = createInitialBoard();
+
+  // Map internal piece codes to Unicode symbols.
   const symbols = {
     wk: '♔', wq: '♕', wr: '♖', wb: '♗', wn: '♘', wp: '♙',
     bk: '♚', bq: '♛', br: '♜', bb: '♝', bn: '♞', bp: '♟'
   };
 
-  const game = new Chess();
-  let selectedSquare = null;
-  let legalMoves = [];
-
   function renderLabels() {
     $('#rank-labels').html(ranks.map(r => `<span>${r}</span>`).join(''));
     $('#file-labels').html(files.map(f => `<span>${f}</span>`).join(''));
-  }
-
-  function pieceCodeAt(square) {
-    const piece = game.get(square);
-    if (!piece) return null;
-    return `${piece.color}${piece.type}`;
   }
 
   function renderBoard() {
@@ -34,21 +44,22 @@ $(function () {
 
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
-        const square = `${files[col]}${8 - row}`;
-        const pieceCode = pieceCodeAt(square);
         const isLight = (row + col) % 2 === 0;
+        const piece = boardState[row][col];
+        const label = `${files[col]}${8 - row}`;
+
         const $sq = $('<button>', {
           class: `square ${isLight ? 'light' : 'dark'}`,
-          'data-square': square,
+          'data-row': row,
+          'data-col': col,
+          'data-pos': label,
+          'aria-label': `Square ${label}`,
           type: 'button',
-          text: pieceCode ? symbols[pieceCode] : ''
+          text: piece ? symbols[piece] : ''
         });
 
-        if (selectedSquare === square) $sq.addClass('selected');
-
-        const target = legalMoves.find(m => m.to === square);
-        if (target) {
-          $sq.addClass(target.captured ? 'capture' : 'legal');
+        if (selected && selected.row === row && selected.col === col) {
+          $sq.addClass('selected');
         }
 
         $board.append($sq);
@@ -56,92 +67,59 @@ $(function () {
     }
   }
 
-  function turnText() {
-    return game.turn() === 'w' ? 'White' : 'Black';
-  }
-
   function updateStatus() {
-    let status = `Turn: ${turnText()}`;
-    let detail = 'Select a piece to see legal moves.';
-
-    if (game.isCheckmate()) {
-      status = `Checkmate: ${turnText()} is checkmated`;
-      detail = `Winner: ${game.turn() === 'w' ? 'Black' : 'White'}`;
-    } else if (game.isStalemate()) {
-      status = 'Draw: Stalemate';
-      detail = 'No legal moves, and king is not in check.';
-    } else if (game.isThreefoldRepetition()) {
-      status = 'Draw: Threefold repetition';
-      detail = 'Same position repeated three times.';
-    } else if (game.isInsufficientMaterial()) {
-      status = 'Draw: Insufficient material';
-      detail = 'Checkmate is impossible with remaining pieces.';
-    } else if (game.isDrawByFiftyMoves()) {
-      status = 'Draw: Fifty-move rule';
-      detail = '50 moves without pawn move or capture.';
-    } else if (game.isDraw()) {
-      status = 'Draw';
-      detail = 'Game ended in a draw.';
-    } else if (game.isCheck()) {
-      detail = `${turnText()} is in check.`;
-    }
-
-    $('#status').text(status);
-    $('#detail').text(detail);
+    $('#status').text(`Turn: ${currentTurn === 'w' ? 'White' : 'Black'}`);
   }
 
-  function clearSelection() {
-    selectedSquare = null;
-    legalMoves = [];
+  function isCurrentPlayersPiece(piece) {
+    return piece && piece[0] === currentTurn;
   }
 
+  // Click behavior: select piece, then move to destination.
   $('#board').on('click', '.square', function () {
-    if (game.isGameOver()) return;
+    const row = Number($(this).data('row'));
+    const col = Number($(this).data('col'));
+    const clickedPiece = boardState[row][col];
 
-    const clickedSquare = $(this).data('square');
-    const clickedPiece = game.get(clickedSquare);
+    // First click must be a non-empty square of current player's piece.
+    if (!selected) {
+      if (!clickedPiece) return; // cannot move empty square
+      if (!isCurrentPlayersPiece(clickedPiece)) return; // cannot select opponent piece
 
-    // No selected piece yet: select only current side's piece.
-    if (!selectedSquare) {
-      if (!clickedPiece || clickedPiece.color !== game.turn()) return;
-      selectedSquare = clickedSquare;
-      legalMoves = game.moves({ square: clickedSquare, verbose: true });
+      selected = { row, col };
       renderBoard();
       return;
     }
 
-    // Clicking own piece switches selection.
-    if (clickedPiece && clickedPiece.color === game.turn()) {
-      selectedSquare = clickedSquare;
-      legalMoves = game.moves({ square: clickedSquare, verbose: true });
+    // Re-clicking selected square cancels selection.
+    if (selected.row === row && selected.col === col) {
+      selected = null;
       renderBoard();
       return;
     }
 
-    // Attempt legal move. Handle promotion as queen by default.
-    const move = game.move({ from: selectedSquare, to: clickedSquare, promotion: 'q' });
+    // Move selected piece to target square (no rule validation yet).
+    const movingPiece = boardState[selected.row][selected.col];
+    boardState[row][col] = movingPiece;
+    boardState[selected.row][selected.col] = null;
 
-    clearSelection();
+    // Clear selection and flip turn.
+    selected = null;
+    currentTurn = currentTurn === 'w' ? 'b' : 'w';
 
-    // Illegal target squares simply clear selection and rerender.
-    if (!move) {
-      renderBoard();
-      updateStatus();
-      return;
-    }
-
-    renderBoard();
     updateStatus();
+    renderBoard();
   });
 
   $('#reset-btn').on('click', function () {
-    game.reset();
-    clearSelection();
-    renderBoard();
+    boardState = createInitialBoard();
+    selected = null;
+    currentTurn = 'w';
     updateStatus();
+    renderBoard();
   });
 
   renderLabels();
-  renderBoard();
   updateStatus();
+  renderBoard();
 });

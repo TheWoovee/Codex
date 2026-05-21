@@ -12,23 +12,26 @@
 
     <section class="layout">
       <div class="board-shell">
+        <!-- Rank labels (8 to 1) -->
         <div id="rank-labels" class="rank-labels" aria-hidden="true"></div>
+
+        <!-- Chessboard rendered from JavaScript state -->
         <div id="board" class="board" aria-label="Chessboard"></div>
+
+        <!-- File labels (a to h) -->
         <div id="file-labels" class="file-labels" aria-hidden="true"></div>
       </div>
 
       <aside class="panel">
         <h2>Game Status</h2>
         <p id="status">Turn: White</p>
-        <p id="detail" class="detail">Select a piece to see legal moves.</p>
         <button id="reset-btn" type="button">Reset Game</button>
       </aside>
     </section>
   </main>
 
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <!-- chess.js handles legal move generation, rules, and endgame states -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.4.0/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- jQuery from CDN (properly included, no backend needed) -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script src="script.js"></script>
 </body>
 </html>
